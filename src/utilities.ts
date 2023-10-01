@@ -4,6 +4,7 @@ import { ResourceTypes } from "./data/resourceTypes";
 import { Recipe, ResourceMap } from "./recipe";
 import path from "path";
 import { stackSizes } from "./data/stackSizes";
+import getRecipe from "./data/recipes";
 
 const config = JSON.parse(readFileSync(path.join(__dirname, '../config.json')).toString());
 
@@ -138,6 +139,14 @@ export function printCountAndStackLine(resource: ResourceTypes, count: number) {
     const digitsSectionSpaces = ' '.repeat(digitsSectionLength - digits);
     console.log(`${rounded} (${roundedStacks})${digitsSectionSpaces}${label}`);
   }
+}
+
+export function getRecipeFromRecipeTypesOrRecipe(recipe: (RecipeTypes|Recipe)): Recipe {
+  if (recipe instanceof Recipe) {
+    return recipe;
+  }
+
+  return getRecipe(recipe);
 }
 
 export { config };

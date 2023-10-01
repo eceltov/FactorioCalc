@@ -2,7 +2,7 @@
   "name": "factorio_calc",
   "version": "1.0.0",
   "scripts": {
-    "clean": "rm src/*js",
+    "clean": "rm -r out",
     "build": "npx tsc",
     "start": "node out/main.js",
     "test": "npm run build && npm run start"
