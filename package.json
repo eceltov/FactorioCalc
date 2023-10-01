@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "clean": "rm src/*js",
-    "build": "npx tsc src/main.ts",
-    "start": "node src/main.js",
+    "build": "npx tsc",
+    "start": "node out/main.js",
     "test": "npm run build && npm run start"
   },
   "author": "Vojtech Kloda",
