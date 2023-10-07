@@ -5,7 +5,8 @@
     "clean": "rm -r out",
     "build": "npx tsc",
     "start": "node out/main.js",
-    "test": "npm run build && npm run start"
+    "debug": "npm run build && npm run start",
+    "test": "npm run build && node out/tests/productivity.js"
   },
   "author": "Vojtech Kloda",
   "dependencies": {

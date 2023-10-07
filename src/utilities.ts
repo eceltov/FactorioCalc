@@ -1,10 +1,11 @@
 import { readFile, readFileSync } from "fs";
 import { RecipeTypes } from "./data/recipeTypes";
 import { ResourceTypes } from "./data/resourceTypes";
-import { Recipe, ResourceMap } from "./recipe";
+import { Recipe } from "./recipe";
 import path from "path";
 import { stackSizes } from "./data/stackSizes";
 import getRecipe from "./data/recipes";
+import { ResourceMap } from "./resourceMap";
 
 const config = JSON.parse(readFileSync(path.join(__dirname, '../config.json')).toString());
 
@@ -64,6 +65,8 @@ export type RawRecipe = {
   inputs: [ResourceTypes, number][],
   outputs: [ResourceTypes, number][],
 };
+
+export type ProductivityRecipe = (RecipeTypes|Recipe)|[(RecipeTypes|Recipe), number]
 
 export function createRecipes(rawRecipes: RawRecipe[]): Map<RecipeTypes, Recipe> {
   const recipes: Map<RecipeTypes, Recipe> = new Map();

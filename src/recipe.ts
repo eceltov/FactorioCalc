@@ -1,87 +1,8 @@
 import { RecipeTypes } from "./data/recipeTypes";
 import getRecipe from "./data/recipes";
 import { ResourceTypes } from "./data/resourceTypes";
-import { almostLeastCommonMultiple, config, debugLog, getRecipeFromRecipeTypesOrRecipe, getRequiredInventorySlots, printCountAndStackLine } from "./utilities";
-
-export class ResourceMap {
-  private readonly map: Map<ResourceTypes, number>
-
-  constructor(map: Map<ResourceTypes, number>) {
-    this.map = map;
-  }
-
-  getIterable() {
-    return this.map.entries();
-  }
-
-  /**
-   * Removes a resource from the map.
-   * @param type The type of the resource.
-   */
-  removeResource(type: ResourceTypes) {
-    this.map.delete(type);
-  }
-
-  /**
-   * Adds a resource to the map. If already present, its count is increased.
-   * @param type The type of the resource.
-   * @param count The count to be added.
-   */
-  addResource(type: ResourceTypes, count: number) {
-    if (count === 0) {
-      return;
-    }
-
-    if (this.map.has(type)) {
-      this.map.set(type, this.map.get(type)! + count);
-    }
-    else {
-      this.map.set(type, count);
-    }
-  }
-
-  hasResource(type: ResourceTypes): Boolean {
-    return this.map.has(type);
-  }
-
-  getResourceTypes(): ResourceTypes[] {
-    return Array.from(this.map.keys());
-  }
-
-  join(other: ResourceMap) {
-    for (let [resource, count] of other.map) {
-      this.addResource(resource, count);
-    }
-  }
-
-  resourceCount(type: ResourceTypes): number {
-    if (!this.map.has(type)) {
-      return 0;
-    }
-
-    return this.map.get(type)!;
-  }
-
-  /**
-   * Multiplies all values.
-   * @param multiplier The multiplier.
-   */
-  multiply(multiplier: number) {
-    for (let [type, count] of this.map) {
-      this.map.set(type, count * multiplier);
-    }
-  }
-
-  print() {
-    for (let [type, count] of this.map) {
-      printCountAndStackLine(type, count);
-    }
-  }
-
-  clone(): ResourceMap {
-    return new ResourceMap(new Map(this.map));
-  }
-}
+import { ResourceMap } from "./resourceMap";
+import { ProductivityRecipe, almostLeastCommonMultiple, config, debugLog, getRecipeFromRecipeTypesOrRecipe, getRequiredInventorySlots } from "./utilities";
 
 export class Recipe {
   inputs: ResourceMap
@@ -99,6 +20,7 @@ export class Recipe {
   /**
    * Multiplies all inputs and outputs of the recipe.
    * @param multiplier The multiplier.
+   * @returns Returns this recipe.
    */
   multiply(multiplier: number) {
     this.inputs.multiply(multiplier);
@@ -187,20 +109,40 @@ export class Recipe {
   }
 
   /**
-   * @param recipes Either recipe types or recipes. In case of recipes, their label will be 'custom'.
+   * @param productivityRecipes Either recipe types or recipes. In case of recipes, their label will be 'custom'.
    * @returns Returns a map from recipe labels to recipes.
    */
-  private createRecipeMap(recipes: (RecipeTypes|Recipe)[]) {
+  private createRecipeMap(productivityRecipes: ProductivityRecipe[]) {
     const recipeMap: Map<string, Recipe> = new Map();
-    for (let recipe of recipes) {
-      if (recipe instanceof Recipe) {
-        recipeMap.set('custom', recipe);
+    for (let productivityRecipe of productivityRecipes) {
+      let recipe: Recipe|RecipeTypes;
+      let productivityMultiplier = 1;
+      if (productivityRecipe instanceof Array) {
+        [recipe, productivityMultiplier] = productivityRecipe;
       }
       else {
-        recipeMap.set(RecipeTypes[recipe], getRecipe(recipe));
+        recipe = productivityRecipe;
+      }
+
+      if (recipe instanceof Recipe) {
+        recipeMap.set('custom', recipe.applyProductivity(productivityMultiplier));
+      }
+      else {
+        recipeMap.set(RecipeTypes[recipe], getRecipe(recipe).applyProductivity(productivityMultiplier));
       }
     }
     return recipeMap;
+  }
+
+  /**
+   * Applies productivity to the recipe.
+   * @param productivityMultiplier The multiplier with which the outputs will be multiplied.
+   * @returns Returns this recipe.
+   */
+  applyProductivity(productivityMultiplier: number) {
+    ///TODO: this implementation will not work for all recipes
+    this.outputs.multiply(productivityMultiplier);
+    return this;
   }
 
   /**
@@ -212,16 +154,16 @@ export class Recipe {
    * @param consumerDefinitions Definitions of the consumers to be applied.
    * @returns Returns this recipe.
    */
-  applyCyclicConsumerRecipes(consumerDefinitions: Iterable<readonly [(RecipeTypes|Recipe), ResourceTypes]>) {
+  applyCyclicConsumerRecipes(consumerDefinitions: Iterable<readonly [(RecipeTypes|Recipe), ResourceTypes, number?]>) {
     // update as long as a change occurs
     let update = true;
     while (update) {
       update = false;
 
       // apply all consumers in order
-      for (let [recipe, resource] of consumerDefinitions) {
+      for (let [recipe, resource, productivityMultiplier] of consumerDefinitions) {
         // if any consumer changed the recipe, do another iteration
-        update ||= this.applyConsumerRecipe(recipe, resource);
+        update ||= this.applyConsumerRecipe(recipe, resource, productivityMultiplier);
       }  
     }
 
@@ -236,11 +178,11 @@ export class Recipe {
    * @param consumerDefinitions Definitions of the consumers to be applied.
    * @returns Returns this recipe.
    */
-  applyConsumerRecipes(consumerDefinitions: Iterable<readonly [(RecipeTypes|Recipe), ResourceTypes]>) {
+  applyConsumerRecipes(consumerDefinitions: Iterable<readonly [(RecipeTypes|Recipe), ResourceTypes, number|undefined]>) {
     // apply all consumers in order
-    for (let [recipe, resource] of consumerDefinitions) {
+    for (let [recipe, resource, productivityMultiplier] of consumerDefinitions) {
       // if any consumer changed the recipe, do another iteration
-      this.applyConsumerRecipe(recipe, resource);
+      this.applyConsumerRecipe(recipe, resource, productivityMultiplier);
     }  
 
     return this;
@@ -302,8 +244,8 @@ export class Recipe {
    * @param resource The primary resource to be consumed.
    * @returns Whether the consumer changed this recipe.
    */
-  private applyConsumerRecipe(recipe: (RecipeTypes|Recipe), resource: ResourceTypes) {
-    const resolvedRecipe = getRecipeFromRecipeTypesOrRecipe(recipe);
+  private applyConsumerRecipe(recipe: (RecipeTypes|Recipe), resource: ResourceTypes, productivityMultiplier: number = 1) {
+    const resolvedRecipe = getRecipeFromRecipeTypesOrRecipe(recipe).applyProductivity(productivityMultiplier);
 
     const outputCount = this.outputs.resourceCount(resource);
     const consumerInputCount = resolvedRecipe.inputs.resourceCount(resource);
@@ -331,7 +273,7 @@ export class Recipe {
    * @param recipes A list of recipes to be applied.
    * @returns Returns this recipe.
    */
-  applyProducerRecipes(recipes: (RecipeTypes|Recipe)[]) {
+  applyProducerRecipes(recipes: ProductivityRecipe[]) {
     // calculate the least common multiple, so that the outputs of the used recipe
     // match the inputs of this recipe (an error margin is used to avoid producing
     // astronomical numbers)
@@ -343,9 +285,10 @@ export class Recipe {
    * The producer recipes will replace any matching input resource of this recipe, but this recipe
    * will not be multiplied in the process to produce an exact match.
    * @param recipes A list of recipes to be applied.
+   * @param productivityMultiplier The multiplier with which the outputs of producer recipes will be multiplied.
    * @returns Returns this recipe.
    */
-  applyProducerRecipesNoScaling(recipes: (RecipeTypes|Recipe)[]) {
+  applyProducerRecipesNoScaling(recipes: ProductivityRecipe[]) {
     // multiply this recipe by 1 and the other one by how many time it fits into this one
     return this.applyProducerRecipesImpl(recipes, (a, b) => [1, Math.floor(a / b)]);
   }
@@ -359,7 +302,7 @@ export class Recipe {
    * Returns: [this recipe multiplier, applied recipe multiplier].
    * @returns Returns this recipe.
    */
-  private applyProducerRecipesImpl(recipes: (RecipeTypes|Recipe)[], multiplierFunc: (a: number, b: number) => [number, number]) {
+  private applyProducerRecipesImpl(recipes: ProductivityRecipe[], multiplierFunc: (a: number, b: number) => [number, number]) {
     // create map of recipe types to recipes
     const recipeMap = this.createRecipeMap(recipes);
 

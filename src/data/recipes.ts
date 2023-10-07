@@ -123,6 +123,51 @@ const rawRecipes: RawRecipe[] = [
       [ResourceTypes.SpaceSciencePack, 5],
     ],
   },
+  {
+    type: RecipeTypes.CosmicWater,
+    time: 75, ///TODO
+    inputs: [
+      [ResourceTypes.Lubricant, 1],
+      [ResourceTypes.Water, 99],
+    ],
+    outputs: [
+      [ResourceTypes.CosmicWater, 100],
+    ],
+  },
+  {
+    type: RecipeTypes.ChemicalGel,
+    time: 75, ///TODO
+    inputs: [
+      [ResourceTypes.CosmicWater, 10],
+      [ResourceTypes.PetroleumGas, 100],
+    ],
+    outputs: [
+      [ResourceTypes.ChemicalGel, 20],
+    ],
+  },
+  {
+    ///TODO check
+    type: RecipeTypes.ElectronicCircuitWood,
+    time: 0.5,
+    inputs: [
+      [ResourceTypes.Wood, 1],
+      [ResourceTypes.CopperWire, 3],
+    ],
+    outputs: [
+      [ResourceTypes.ElectronicCircuit, 1],
+    ],
+  },
+  {
+    ///TODO check
+    type: RecipeTypes.CopperWire,
+    time: 0.5,
+    inputs: [
+      [ResourceTypes.CopperPlate, 1],
+    ],
+    outputs: [
+      [ResourceTypes.CopperWire, 2],
+    ],
+  },
 ];
 
 const recipes: Map<RecipeTypes, Recipe> = createRecipes(rawRecipes);

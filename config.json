@@ -1,5 +1,5 @@
 {
-  "almostLeastCommonMultipleError": 0.0,
+  "almostLeastCommonMultipleError": 0.01,
   "showDebugLogs": false,
   "printedResultDigitSectionLength": 17,
   "printedResultMaxDecimalPlaces": 2

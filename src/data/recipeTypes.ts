@@ -8,4 +8,8 @@ export enum RecipeTypes {
   DataFormatting,
   CosmicWaterDecontamination,
   SpaceSciencePack,
+  CosmicWater,
+  ChemicalGel,
+  ElectronicCircuitWood,
+  CopperWire,
 }

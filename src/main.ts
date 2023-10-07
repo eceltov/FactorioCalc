@@ -5,9 +5,9 @@ import { ResourceTypes } from "./data/resourceTypes";
 const spaceAndUtilityRecipe = getRecipe(RecipeTypes.UtilitySciencePack)
 // apply recipes to get only terrestrial resources
 .applyProducerRecipes([
-  RecipeTypes.MachineLearningData,
-  RecipeTypes.BlankDataCard,
-  RecipeTypes.PolishedDataStorageSubstrateWater,
+  [RecipeTypes.MachineLearningData, 1.18],
+  [RecipeTypes.BlankDataCard, 1.18],
+  [RecipeTypes.PolishedDataStorageSubstrateWater, 1.18],
 ])
 // multiply to get around 400 stacks in total
 .multiply(180)
